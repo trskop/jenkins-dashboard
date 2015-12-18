@@ -10,7 +10,7 @@ import Data.Eq (Eq)
 import Data.Function (($), (.), const, flip, id)
 import Data.Functor ((<$>))
 import Data.Int (Int)
-import Data.List ((\\), any)
+import Data.List ((\\), any, unwords)
 import Data.Monoid ((<>), mconcat)
 import Pipes
 import qualified Pipes.Prelude as P
@@ -36,11 +36,14 @@ import Paths_jenkins_dashboard (getDataFileName)
 import Jenkins.Get (getJenkinsJobs)
 import Jenkins.Type
     ( LastRun(Failed, Success)
+    , Activity(Building, Idle)
     , Job
     , getJobs
-    , recentlyFailed
+    , jobActivity
+    , jobLastRun
     , name
-    , jobLastRun)
+    , recentlyFailed
+    )
 import Utils.PlaySound (playSound)
 import Type
     ( Config(credentials, refreshDelay, url)
@@ -84,7 +87,9 @@ playOnError = forever $ do
 
 printJob :: Job -> Effect M ()
 printJob = liftIO . putStrLn . format where
-    format = color <*> name
+    format x = case jobActivity x of
+        Idle -> (color <*> name) x
+        Building -> building x
     color j = case jobLastRun j of
         Success -> addColor Green
         Failed -> addColor Red
@@ -93,6 +98,10 @@ printJob = liftIO . putStrLn . format where
         [ setSGRCode [SetColor Foreground Dull c]
         , s
         , setSGRCode [Reset]
+        ]
+    building x = unwords
+        [ "Building"
+        , name x
         ]
 
 runWihtConfig :: Config -> IO ()
