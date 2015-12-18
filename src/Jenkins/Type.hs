@@ -60,8 +60,8 @@ import Network.URI (nullURI)
 data Activity = Building | Idle
   deriving (Show, Generic, Typeable, Eq, Ord)
 
-data LastRun =
-      Aborted
+data LastRun
+    = Aborted
     | Disabled
     | Failed
     | NotBuilded
