@@ -147,7 +147,9 @@ jobLastRun = lastRun . status
 jobActivity :: Job -> Activity
 jobActivity = activity . status
 
+failed :: Job -> Bool
+failed = (Failed ==) . lastRun . status
+
 recentlyFailed :: Job -> Bool
 recentlyFailed = ((&&) . failed) <*> finished where
-    failed = (Failed ==) . lastRun . status
     finished =  (Idle ==) . activity . status
