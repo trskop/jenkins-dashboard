@@ -3,7 +3,7 @@ module Type where
 
 import Control.Monad.Reader (ReaderT)
 import Data.Int (Int)
-import Data.Maybe (Maybe(Just))
+import Data.Maybe (Maybe)
 import Data.String (String)
 import System.IO (IO)
 import Text.Show (Show)

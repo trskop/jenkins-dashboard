@@ -1,12 +1,28 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 module Utils.PlaySound
     ( playSound
     ) where
 
 import Control.Monad (void)
-import System.IO (IOMode(ReadWriteMode), withFile)
+import Data.Bool (Bool(False, True))
+import Data.Function (($), (.))
+import Data.Maybe (Maybe(Nothing))
+import Data.String (String)
+import System.IO (FilePath, IO, IOMode(ReadWriteMode), withFile)
 import System.Process
     ( CmdSpec(RawCommand)
-    , CreateProcess(..)
+    , CreateProcess
+        ( CreateProcess
+        , cmdspec
+        , std_in
+        , std_out
+        , std_err
+        , cwd
+        , env
+        , close_fds
+        , create_group
+        , delegate_ctlc
+        )
     , StdStream(UseHandle)
     , createProcess
     )
