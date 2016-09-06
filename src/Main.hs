@@ -12,7 +12,7 @@ import Data.Eq (Eq)
 import Data.Function (const, flip, id, ($), (.))
 import Data.Functor ((<$>))
 import Data.Int (Int)
-import Data.List (map, null, partition, unwords, (\\), union)
+import Data.List (filter, map, notElem, null, partition, union, unwords, (\\))
 import Data.Monoid (mconcat, (<>))
 import Pipes
 import qualified Pipes.Prelude as P
@@ -48,7 +48,7 @@ import Jenkins.Type
     )
 import Utils.PlaySound (playSound)
 import Type
-    ( Config(credentials, refreshDelay, url)
+    ( Config(boringNames, credentials, refreshDelay, url)
     , M
     )
 import Options (configOptions)
@@ -113,10 +113,10 @@ printJob = liftIO . putStrLn . format where
         ]
 
 runWihtConfig :: Config -> IO ()
-runWihtConfig c = flip runReaderT c . runEffect
-        $ for magic printJob
-        where
-        magic = getter >-> latest >-> P.tee playOnNewError >-> P.concat
+runWihtConfig c = flip runReaderT c . runEffect $ for magic printJob
+    where
+    magic = getter >-> P.map f >-> latest >-> P.tee playOnNewError >-> P.concat
+    f = filter (flip notElem (boringNames c) . name)
 
 main :: IO ()
 main = execParser opts >>= runWihtConfig

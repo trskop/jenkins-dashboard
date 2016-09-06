@@ -10,9 +10,10 @@ import Text.Show (Show)
 
 
 data Config = Config
-    { url :: String
-    , credentials:: Maybe (String, String)
-    , refreshDelay :: Int
+    { url :: !String
+    , credentials :: !(Maybe (String, String))
+    , refreshDelay :: !Int
+    , boringNames :: ![String]
     } deriving Show
 
 type M = ReaderT Config IO

@@ -6,6 +6,7 @@ module Options
 import Control.Applicative
     ( Alternative((<|>))
     , Applicative((<*>))
+    , many
     )
 import Control.Arrow (second)
 import Data.Bool (otherwise)
@@ -68,5 +69,9 @@ configOptions = Config
         (option auto $ long "delay"
         <> metavar "NANOSECONDS"
         <> help "Delay between two fetches")
+    <*> (many . strOption)
+        (long "ignore"
+        <> metavar "NAME"
+        <> help "Job name to ignore")
 
 
