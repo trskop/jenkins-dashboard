@@ -57,7 +57,7 @@ import Options (configOptions)
 everyNNanoseconds :: MonadIO m => Int -> m a -> Producer a m ()
 everyNNanoseconds n a = forever $ do
     lift a >>= yield
-    liftIO . threadDelay $ n
+    liftIO $ threadDelay n
 
 -- | RSS-like functionality...
 latest :: (Monad m, Eq y) => Pipe [y] [y] m a
