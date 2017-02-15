@@ -15,6 +15,7 @@ import Data.Bool (Bool, (&&))
 import qualified Data.ByteString.Lazy.Char8 as C (pack)
 import Data.Either (Either(Left, Right))
 import Data.Eq (Eq((==)))
+import Data.List (elem)
 import Data.Ord (Ord)
 import Data.Function (($), (.))
 import Data.Functor ((<$>))
@@ -149,6 +150,9 @@ jobActivity = activity . status
 
 failed :: Job -> Bool
 failed = (Failed ==) . lastRun . status
+
+failedOrUnstable :: Job -> Bool
+failedOrUnstable = (`elem` [Failed, Unstable]) . lastRun . status
 
 recentlyFailed :: Job -> Bool
 recentlyFailed = ((&&) . failed) <*> finished where

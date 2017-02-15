@@ -26,7 +26,7 @@ import Options.Applicative
     , progDesc
     )
 import System.Console.ANSI
-    ( Color(Green, Red)
+    ( Color(Green, Red, Yellow)
     , ColorIntensity(Dull)
     , ConsoleLayer(Foreground)
     , SGR(SetColor, Reset)
@@ -39,8 +39,8 @@ import Jenkins.Get (getJenkinsJobs)
 import Jenkins.Type
     ( Activity(Building, Idle)
     , Job
-    , LastRun(Failed, Success)
-    , failed
+    , LastRun(Unstable, Failed, Success)
+    , failedOrUnstable
     , getJobs
     , jobActivity
     , jobLastRun
@@ -85,7 +85,7 @@ playOnNewError :: Consumer' [Job] M ()
 playOnNewError = f [] >-> latest >-> P.filter (not . null) >-> g where
     f st = do
         s <- await
-        let (addSt, remSt) = map name *** map name $ partition failed s
+        let (addSt, remSt) = map name *** map name $ partition failedOrUnstable s
             st' = st `union` addSt \\ remSt
         yield st'
         f st'
@@ -101,6 +101,7 @@ printJob = liftIO . putStrLn . format where
     color j = case jobLastRun j of
         Success -> addColor Green
         Failed -> addColor Red
+        Unstable -> addColor Yellow
         _ -> id
     addColor c s = mconcat
         [ setSGRCode [SetColor Foreground Dull c]
