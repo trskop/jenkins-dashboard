@@ -39,39 +39,44 @@ import Options.Applicative
     , help
     )
 
-import Type (Config(Config))
+import Type (Config, mkConfig)
+
 
 parseCredentials :: ReadM (String, String)
 parseCredentials = eitherReader parseHostPort'
-    where
+  where
     parseHostPort' s
-        | isEmpty s          = Left argumentEmpty
-        | List.notElem ':' s = Left unexpectedFormat
-        | otherwise          = Right $ split s
+      | isEmpty s            = Left argumentEmpty
+      | ':' `List.notElem` s = Left unexpectedFormat
+      | otherwise            = Right $ split s
       where
         isEmpty = List.null
         split = second List.tail . List.break (== ':')
         argumentEmpty = "Argument USERNAME:API_COTKEN can not be empty."
         unexpectedFormat = "Argument has to be in USERNAME:API_COTKEN format."
 
-
 configOptions :: Parser Config
-configOptions = Config
-     <$> strOption
-        (long "jenkins"
+configOptions = mkConfig
+    <$> strOption
+        ( long "jenkins"
         <> metavar "URL"
-        <> help "Jenkins url, including protocol")
-     <*> optional
-        (option parseCredentials $ long "credentials"
-        <> metavar "USER_NAME:API_TOKEN"
-        <> help "Credentials to access Jenkins")
-     <*> (<|> pure 1000000)
-        (option auto $ long "delay"
-        <> metavar "NANOSECONDS"
-        <> help "Delay between two fetches")
-    <*> (many . strOption)
-        (long "ignore"
-        <> metavar "NAME"
-        <> help "Job name to ignore")
-
-
+        <> help "Jenkins url, including protocol"
+        )
+    <*> optional
+        ( option parseCredentials
+            $ long "credentials"
+            <> metavar "USER_NAME:API_TOKEN"
+            <> help "Credentials to access Jenkins"
+        )
+    <*> ( option auto
+            ( long "delay"
+            <> metavar "NANOSECONDS"
+            <> help "Delay between two fetches"
+            )
+        <|> pure 1000000
+        )
+    <*> ( many . strOption
+            $ long "ignore"
+            <> metavar "NAME"
+            <> help "Job name to ignore"
+        )

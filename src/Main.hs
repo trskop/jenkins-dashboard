@@ -1,10 +1,10 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Main (main) where
 
-import Control.Applicative (Applicative((<*>)))
+import Control.Applicative ((<*>))
 import Control.Arrow ((***))
 import Control.Concurrent (threadDelay)
-import Control.Monad (Monad((>>=)), forever)
+import Control.Monad (Monad, (>>=), forever)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Reader (ReaderT(runReaderT), asks)
 import Control.Monad.Trans (lift)
@@ -16,6 +16,15 @@ import Data.Functor ((<$>))
 import Data.Int (Int)
 import Data.List (filter, map, notElem, null, partition, union, unwords, (\\))
 import Data.Monoid (mconcat, (<>))
+import System.IO (FilePath, IO, putStrLn)
+
+import Options.Applicative
+    ( execParser
+    , info
+    , helper
+    , fullDesc
+    , progDesc
+    )
 import Pipes
     ( Consumer'
     , Effect
@@ -28,15 +37,6 @@ import Pipes
     , yield
     )
 import qualified Pipes.Prelude as P
-import System.IO (FilePath, IO, putStrLn)
-
-import Options.Applicative
-    ( execParser
-    , info
-    , helper
-    , fullDesc
-    , progDesc
-    )
 import System.Console.ANSI
     ( Color(Green, Red, Yellow)
     , ColorIntensity(Dull)
@@ -60,7 +60,12 @@ import Jenkins.Type
     )
 import Utils.PlaySound (playSound)
 import Type
-    ( Config(boringNames, credentials, refreshDelay, url)
+    ( Config
+        ( boringNames
+        , refreshDelay
+        , url
+        , wreqOptions
+        )
     , M
     )
 import Options (configOptions)
@@ -73,7 +78,8 @@ everyNNanoseconds n a = forever $ do
 
 -- | RSS-like functionality...
 latest :: (Monad m, Eq y) => Pipe [y] [y] m a
-latest = f [] where
+latest = f []
+  where
     f s = do
         x <- await
         yield $ x \\ s
@@ -83,18 +89,19 @@ getter :: Producer [Job] M ()
 getter = do
     d <- lift $ asks refreshDelay
     everyNNanoseconds d get
-    where
+  where
     get = do
-        c <- asks credentials
+        opts <- asks wreqOptions
         u <- asks url
-        liftIO (strip <$> getJenkinsJobs c u)
+        liftIO (strip <$> getJenkinsJobs opts u)
     strip = either (const []) getJobs
 
 soundFailure :: FilePath
 soundFailure = "sounds/failure.wav"
 
 playOnNewError :: Consumer' [Job] M ()
-playOnNewError = f [] >-> latest >-> P.filter (not . null) >-> g where
+playOnNewError = f [] >-> latest >-> P.filter (not . null) >-> g
+  where
     f st = do
         s <- await
         let (addSt, remSt) = map name *** map name $ partition failedOrUnstable s
@@ -106,7 +113,8 @@ playOnNewError = f [] >-> latest >-> P.filter (not . null) >-> g where
         liftIO $ getDataFileName soundFailure >>= playSound
 
 printJob :: Job -> Effect M ()
-printJob = liftIO . putStrLn . format where
+printJob = liftIO . putStrLn . format
+  where
     format x = case jobActivity x of
         Idle -> (color <*> name) x
         Building -> building x
@@ -126,14 +134,17 @@ printJob = liftIO . putStrLn . format where
         ]
 
 runWihtConfig :: Config -> IO ()
-runWihtConfig c = flip runReaderT c . runEffect $ for magic printJob
-    where
-    magic = getter >-> P.map f >-> latest >-> P.tee playOnNewError >-> P.concat
+runWihtConfig c =
+    flip runReaderT c . runEffect $ for magic printJob
+  where
+    magic =
+        getter >-> P.map f >-> latest >-> P.tee playOnNewError >-> P.concat
+
     f = filter (flip notElem (boringNames c) . name)
 
 main :: IO ()
 main = execParser opts >>= runWihtConfig
-    where
+  where
     opts = info (helper <*> configOptions)
         ( fullDesc
         <> progDesc "Monitor changes in Jenkins dashboard."

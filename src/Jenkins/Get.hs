@@ -3,56 +3,43 @@ module Jenkins.Get
     ( getJenkinsJobs
     ) where
 
+import Control.Applicative (pure)
 import Control.Exception (IOException, handle)
-import Control.Monad (Monad((>>=), return))
-import qualified Data.ByteString.Lazy.Char8 as C (pack)
+import Data.Bool (otherwise)
 import Data.Either (Either(Left))
+import Data.Eq ((==))
 import Data.Function (($), (.))
 import Data.Functor ((<$>))
-import Data.Maybe (Maybe, maybe)
 import Data.Monoid ((<>))
 import Data.String (String)
 import System.IO (IO)
-import Text.Show(Show(show))
+import Text.Show(show)
 
-import Data.Aeson (eitherDecode)
-import Network.HTTP
-    ( HeaderName(HdrAuthorization)
-    , Request_String
-    , getRequest
-    , getResponseBody
-    , insertHeader
-    , simpleHTTP
-    )
-import Network.HTTP.Auth
-    ( Authority (AuthBasic)
-    , withAuthority
-    )
-import Network.URI (nullURI)
+import Control.Lens ((^.), views)
+import qualified Data.Aeson as Aeson (eitherDecode)
+import qualified Network.Wreq as Wreq
 
 import Jenkins.Type (Jobs)
 
 
 getJenkinsJobs
-    :: Maybe (String, String)
-    -- ^ Tuple with name and password (token).
+    :: Wreq.Options
     -> String
     -- ^ Jenkins server url.
     -> IO (Either String Jobs)
     -- ^ On success returns Righ Jobs. Jobs contain state and name of each job
     -- on server.
-getJenkinsJobs authData url' =
-    handle handler (eitherDecode . C.pack <$> getJenkinsJson)
+getJenkinsJobs opts url = handle ioExceptionHandler
+    $ on200Ok Aeson.eitherDecode <$> Wreq.getWith opts (url <> "/api/json")
   where
-    handler :: IOException -> IO (Either String Jobs)
-    handler e = return . Left $ show e
+    ioExceptionHandler :: IOException -> IO (Either String Jobs)
+    ioExceptionHandler e = pure . Left $ show e
 
-    getJenkinsJson :: IO String
-    getJenkinsJson = (simpleHTTP . auth . getRequest $ url' <> "/api/json")
-        >>= getResponseBody
+    on200Ok f r
+      | statusCode == 200 = views Wreq.responseBody f r
+      | otherwise = failWithUnexpectedStatusCode
+      where
+        statusCode = r ^. Wreq.responseStatus . Wreq.statusCode
 
-    auth :: Request_String -> Request_String
-    auth r = maybe r f authData where
-        f (usr, pas) = insertHeader HdrAuthorization
-            (withAuthority (AuthBasic ("" :: String) usr pas nullURI) r) r
-
+        failWithUnexpectedStatusCode =
+            Left $ "Unexpected status code in response: " <> show statusCode

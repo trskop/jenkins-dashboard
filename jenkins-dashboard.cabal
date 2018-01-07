@@ -65,18 +65,17 @@ executable jenkins-dashboard
 
   -- Other library packages from which modules are imported.
   build-depends:      base >=4.7 && <5.0
-                    , HTTP
                     , aeson
                     , ansi-terminal
                     , attoparsec
                     , bytestring
                     , mtl
-                    , network
-                    , network-uri
                     , optparse-applicative
                     , pipes >=4.0 && <5.0
                     , process
                     , text
+                    , wreq
+                    , lens
 
   -- Directories containing source files.
   hs-source-dirs:      src
