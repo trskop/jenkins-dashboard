@@ -5,7 +5,9 @@ import Control.Applicative (Applicative((<*>)))
 import Control.Arrow ((***))
 import Control.Concurrent (threadDelay)
 import Control.Monad (Monad((>>=)), forever)
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Reader (ReaderT(runReaderT), asks)
+import Control.Monad.Trans (lift)
 import Data.Bool (not)
 import Data.Either (either)
 import Data.Eq (Eq)
@@ -15,6 +17,16 @@ import Data.Int (Int)
 import Data.List (filter, map, notElem, null, partition, union, unwords, (\\))
 import Data.Monoid (mconcat, (<>))
 import Pipes
+    ( Consumer'
+    , Effect
+    , Pipe
+    , Producer
+    , (>->)
+    , await
+    , for
+    , runEffect
+    , yield
+    )
 import qualified Pipes.Prelude as P
 import System.IO (FilePath, IO, putStrLn)
 
