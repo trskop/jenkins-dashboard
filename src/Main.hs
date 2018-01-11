@@ -11,10 +11,10 @@ import Control.Monad.Trans (lift)
 import Data.Bool (not)
 import Data.Either (either)
 import Data.Eq (Eq)
-import Data.Function (const, flip, id, ($), (.))
+import Data.Function (const, flip, ($), (.))
 import Data.Functor ((<$>))
 import Data.Int (Int)
-import Data.List (filter, map, notElem, null, partition, union, unwords, (\\))
+import Data.List (filter, map, notElem, null, partition, union, (\\))
 import Data.Monoid (mconcat, (<>))
 import System.IO (FilePath, IO, putStrLn)
 
@@ -38,10 +38,11 @@ import Pipes
     )
 import qualified Pipes.Prelude as P
 import System.Console.ANSI
-    ( Color(Green, Red, Yellow)
-    , ColorIntensity(Dull)
+    ( Color(Green, Red, White, Yellow)
+    , ColorIntensity(Dull, Vivid)
+    , ConsoleIntensity(BoldIntensity, FaintIntensity, NormalIntensity)
     , ConsoleLayer(Foreground)
-    , SGR(SetColor, Reset)
+    , SGR(SetColor, SetConsoleIntensity, Reset)
     , setSGRCode
     )
 
@@ -51,7 +52,7 @@ import Jenkins.Get (getJenkinsJobs)
 import Jenkins.Type
     ( Activity(Building, Idle)
     , Job
-    , LastRun(Unstable, Failed, Success)
+    , LastRun(Aborted, Disabled, Failed, NotBuilded, Success, Unstable)
     , failedOrUnstable
     , getJobs
     , jobActivity
@@ -117,21 +118,29 @@ printJob = liftIO . putStrLn . format
   where
     format x = case jobActivity x of
         Idle -> (color <*> name) x
-        Building -> building x
+        Building -> addColor BoldIntensity Vivid White . building $ name x
+
     color j = case jobLastRun j of
-        Success -> addColor Green
-        Failed -> addColor Red
-        Unstable -> addColor Yellow
-        _ -> id
-    addColor c s = mconcat
-        [ setSGRCode [SetColor Foreground Dull c]
+        Success -> addColor NormalIntensity Dull Green . success
+        Failed -> addColor NormalIntensity Dull Red . failure
+        Unstable -> addColor NormalIntensity Dull Yellow . unstable
+        Disabled -> addColor FaintIntensity Dull White . disabled
+        Aborted -> addColor BoldIntensity Vivid White . aborted
+        NotBuilded -> addColor FaintIntensity Dull White . notBuilt
+
+    addColor i ci c s = mconcat
+        [ setSGRCode [SetConsoleIntensity i, SetColor Foreground ci c]
         , s
         , setSGRCode [Reset]
         ]
-    building x = unwords
-        [ "Building"
-        , name x
-        ]
+
+    notBuilt s = mconcat ["NotBuilt  ", s]
+    disabled s = mconcat ["Disabled  ", s]
+    unstable s = mconcat ["Unstable  ", s]
+    failure  s = mconcat ["Failure   ", s]
+    success  s = mconcat ["Success   ", s]
+    building s = mconcat ["Building  ", s]
+    aborted  s = mconcat ["Aborted   ", s]
 
 runWihtConfig :: Config -> IO ()
 runWihtConfig c =

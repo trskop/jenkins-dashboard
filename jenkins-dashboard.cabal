@@ -69,13 +69,14 @@ executable jenkins-dashboard
                     , ansi-terminal
                     , attoparsec
                     , bytestring
+                    , http-client
+                    , lens
                     , mtl
                     , optparse-applicative
                     , pipes >=4.0 && <5.0
                     , process
                     , text
                     , wreq
-                    , lens
 
   -- Directories containing source files.
   hs-source-dirs:      src
